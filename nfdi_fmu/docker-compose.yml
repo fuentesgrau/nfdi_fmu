@@ -1,0 +1,13 @@
+services:
+  grpc-fmu:
+    build:
+      context: .
+    ports:
+      - "50051:50051"
+  villas-node:
+    image: working-villas
+    volumes:
+      - ./gateway.conf:/config.conf
+    command: ["node", "/config.conf"]
+    ports:
+      - "8080:8080"
