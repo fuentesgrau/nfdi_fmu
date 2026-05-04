@@ -75,155 +75,38 @@ int FMU_callbackserviceImp::FMU_QuickSetup() {
     return 0;
 }
 
-
-grpc::ServerUnaryReactor* FMU_callbackserviceImp::FMU_Start(grpc::CallbackServerContext* context,
-                                                            const villas::node::Message* request,
-                                                            villas::node::Message* reply) {
-    std::cout << "Starting FMU ... " << std::endl;
-    while (currenttime < stoptime) {
+grpc::ServerUnaryReactor* FMU_callbackserviceImp::FMU_DoStep(grpc::CallbackServerContext* context,
+                                                             const villas::node::Message*  request,
+                                                             villas::node::Message* reply) {
+    if (stoptimedefined && currenttime + stepsize > stoptime) {
+        // reply->set_s("Stop time reach");
+    } else {
         fmi3DoStep(fmu, currenttime, stepsize, fmi3True, &eventHandlingNeeded, &terminateSimulation, &earlyReturn, &lastSuccessfulTime);
-        // Get data in this case h, v;
-        double data;
-        fmi3ValueReference r[1] = {1};
-        fmi3GetFloat64(fmu,r, 1, &data, 1);
-        std::cout << "time: " << currenttime << ", data: " << data << std::endl;
-
-        villas::node::Sample* d_s = reply->add_samples();
-        d_s->set_type(villas::node::Sample::Type::Sample_Type_DATA);
-
-        villas::node::Value* reply1 = d_s->add_values();
-        reply1->set_f(data);
-        r[0] = 3;
-        fmi3GetFloat64(fmu,r, 1, &data, 1);
-        villas::node::Value* reply2 = d_s->add_values();
-        reply2->set_f(data);
-        currenttime += stepsize;
-        // Perform step every 500 ms
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        currenttime = currenttime + stepsize;
+        // reply->set_s("Perform a step");
     }
-
     auto* reactor = context->DefaultReactor();
     reactor->Finish(grpc::Status::OK);
     return reactor;
 }
-//grpc::ServerUnaryReactor* FMU_callbackserviceImp::FMU_DoStep(grpc::CallbackServerContext* context,
-//                                                             const villas::node::Message*  request,
-//                                                             villas::node::Message* reply) {
-//    if (stoptimedefined && currenttime + stepsize > stoptime) {
-//        // reply->set_s("Stop time reach");
-//    } else {
-//        fmi3DoStep(fmu, currenttime, stepsize, fmi3True, &eventHandlingNeeded, &terminateSimulation, &earlyReturn, &lastSuccessfulTime);
-//        // reply->set_s("Perform a step");
-//    }
-//    auto* reactor = context->DefaultReactor();
-//    reactor->Finish(grpc::Status::OK);
-//    return reactor;
-//}
 
-//grpc::ServerUnaryReactor* FMU_callbackserviceImp::FMU_GetData(grpc::CallbackServerContext* context,
-//                                                              const villas::node::Message*  request,
-//                                                              villas::node::Message* reply) {
-//    // villas::node::Sample s = request->samples(0);
-//    villas::node::Sample* d_s = reply->add_samples();
-//    // auto* ts = new villas::node::Timestamp;
-//    // ts->set_nsec(s.ts_origin().nsec());
-//    // ts->set_sec(s.ts_origin().sec());
-//    // d_s->set_allocated_ts_origin(ts);
-//    d_s->set_type(villas::node::Sample::Type::Sample_Type_DATA);
-//    for (unsigned int i = 48; i <= 53; i++) {
-//        villas::node::Value* d_v = d_s->add_values();
-//        fmi3ValueReference r[1] = {i};
-//        fmi3Float64 d;
-//        fmi3GetFloat64(fmu, r, 1, &d, 1);
-//        d_v->set_f(d);
-//    }
-//    auto* reactor = context->DefaultReactor();
-//    reactor->Finish(grpc::Status::OK);
-//    return reactor;
-//}
+grpc::ServerUnaryReactor* FMU_callbackserviceImp::FMU_GetData(grpc::CallbackServerContext* context,
+                                                              const villas::node::Message*  request,
+                                                              villas::node::Message* reply) {
+    std::cout << "Hello from GetData... " << std::endl;
+    villas::node::Sample* d_s = reply->add_samples();
+    d_s->set_type(villas::node::Sample::Type::Sample_Type_DATA);
+        villas::node::Value* d_v = d_s->add_values();
+        fmi3ValueReference r[2] = {268435455,603979776};
+        fmi3Float64 d[2];
+        fmi3GetFloat64(fmu, r, 2, d, 2);
+        std::cout << "callbackserver: FMU time: " << d[0] << ", data: " << d[1] << std::endl;
+        d_v->set_f(d[1]);
+    auto* reactor = context->DefaultReactor();
+    reactor->Finish(grpc::Status::OK);
+    return reactor;
+}
 
-//grpc::ServerUnaryReactor* FMU_callbackserviceImp::FMU_SetData(grpc::CallbackServerContext* context,
-//                                                              const villas::node::Message* request,
-//                                                              villas::node::Message* reply) {
-//    villas::node::Sample data = request->samples(0);
-//    for (int i = 0; i < data.values_size(); i++) {
-//        fmi3Float64 d;
-//        villas::node::Value d_v = data.values(i);
-//        fmi3ValueReference r[1] = {(unsigned int)i};
-//        double f = d_v.f();
-//        fmi3SetFloat64(fmu, r, 1, &f, 1);
-//    }
-//    auto* reactor = context->DefaultReactor();
-//    reactor->Finish(grpc::Status::OK);
-//    return reactor;
-//}
-
-//grpc::ServerUnaryReactor* FMU_callbackserviceImp::FMU_GetV(grpc::CallbackServerContext* context,
-//                                                           const villas::node::Message* request,
-//                                                           villas::node::Message* reply) {
-//    villas::node::Sample s = request->samples(0);
-//    villas::node::Sample* d_s = reply->add_samples();
-//    auto* ts = new villas::node::Timestamp;
-//    ts->set_nsec(s.ts_origin().nsec());
-//    ts->set_sec(s.ts_origin().sec());
-//    d_s->set_allocated_ts_origin(ts);
-//    d_s->set_type(villas::node::Sample::Type::Sample_Type_DATA);
-//    for (unsigned int i = 0; i <= 47; i++) {
-//        villas::node::Value* d_v = d_s->add_values();
-//        fmi3ValueReference r[1] = {i};
-//        fmi3Float64 d;
-//        fmi3GetFloat64(fmu, r, 1, &d, 1);
-//        d_v->set_f(d);
-//    }
-//    auto* reactor = context->DefaultReactor();
-//    reactor->Finish(grpc::Status::OK);
-//    return reactor;
-//}
-
-//grpc::ServerUnaryReactor* FMU_callbackserviceImp::FMU_GetDataRef(grpc::CallbackServerContext* context,
-//                                                                 const FMU_server::Reference*  request,
-//                                                                 villas::node::Message* reply) {
-//    // villas::node::Sample s = request->samples(0);
-//    villas::node::Sample* d_s = reply->add_samples();
-//    // auto* ts = new villas::node::Timestamp;
-//    // ts->set_nsec(s.ts_origin().nsec());
-//    // ts->set_sec(s.ts_origin().sec());
-//    // d_s->set_allocated_ts_origin(ts);
-//    d_s->set_type(villas::node::Sample::Type::Sample_Type_DATA);
-//    // for (unsigned int i = 48; i <= 53; i++) {
-//    //     villas::node::Value* d_v = d_s->add_values();
-//    //     fmi3ValueReference r[1] = {i};
-//    //     fmi3Float64 d;
-//    //     fmi3GetFloat64(fmu, r, 1, &d, 1);
-//    //     d_v->set_f(d);
-//    // }
-//    for (int i = 0; i < request->ref_size(); i++) {
-//        villas::node::Value* d_v = d_s->add_values();
-//        fmi3ValueReference r[1] = {(unsigned int)request->ref(i)};
-//        fmi3Float64 d;
-//        fmi3GetFloat64(fmu, r, 1, &d, 1);
-//        d_v->set_f(d);
-//    }
-//    // villas::node::Value* d_v = d_s->add_values();
-//    // fmi3ValueReference r[1] = {(unsigned int)request->ref()};
-//    // fmi3Float64 d;
-//    // fmi3GetFloat64(fmu, r, 1, &d, 1);
-//    // d_v->set_f(d);
-//    auto* reactor = context->DefaultReactor();
-//    reactor->Finish(grpc::Status::OK);
-//    return reactor;
-//}
-
-//grpc::ServerUnaryReactor* FMU_callbackserviceImp::data_echo(grpc::CallbackServerContext* context,
-//                                                            const villas::node::Message* request,
-//                                                            villas::node::Message* reply) {
-//    reply->CopyFrom(*request);
-//    std::cout << "Get request: " << request->samples(0).values(0).f() << std::endl;
-//    std::cout << "Set reply: " << reply->samples(0).values(0).f() << std::endl;
-//    auto* reactor = context->DefaultReactor();
-//    reactor->Finish(grpc::Status::OK);
-//    return reactor;
-//}
 
 FMU_callbackserviceImp service;
 

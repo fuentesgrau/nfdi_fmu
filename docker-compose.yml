@@ -1,5 +1,5 @@
 services:
-  grpc-fmu:
+  fmu:
     build:
       context: .
     ports:

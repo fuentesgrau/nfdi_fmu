@@ -26,23 +26,12 @@ public:
     int FMU_Close();
 
 private:
-grpc::Status FMU_Start(grpc::ServerContext* context,
-                       const villas::node::Message* request,
-                       villas::node::Message* reply ); 
-//    grpc::Status FMU_DoStep(grpc::ServerContext* context,
-//                            const villas::node::Message* request,
-//                            villas::node::Message* reply) override;
-//    grpc::Status FMU_GetData(grpc::ServerContext* context,
-//                             const villas::node::Message* request,
-//                             villas::node::Message* reply) override;
-//    grpc::Status FMU_SetData(grpc::ServerContext* context,
-//                             const villas::node::Message* request,
-//                             villas::node::Message* reply) override;
-
-    // int GetData(villas::node::Message* ref, villas::node::Message* data);
-
-    // int SetData(villas::node::Message* ref, villas::node::Message* data);
-
+grpc::Status FMU_DoStep(grpc::ServerContext* context,
+                        const villas::node::Message* request,
+                        villas::node::Message* reply) override;
+grpc::Status FMU_GetData(grpc::ServerContext* context,
+                             const villas::node::Message* request,
+                             villas::node::Message* reply) override;
     void* handle;
     fmi3Instance fmu;
     fmi3InstantiateCoSimulationTYPE* fmi3InstantiateCoSimulation;
@@ -63,18 +52,9 @@ grpc::Status FMU_Start(grpc::ServerContext* context,
     fmi3Float64 lastSuccessfulTime;
 
     fmi3GetFloat64TYPE* fmi3GetFloat64;
-//    fmi3SetFloat64TYPE* fmi3SetFloat64;
 
     std::string guid = "{5d2d8180-f7fc-4933-b4ec-7079ef246625}";
 
-//    fmi3GetFloat32TYPE* fmi3GetFloat32;
-//    fmi3SetFloat32TYPE* fmi3SetFloat32;
-//
-//    fmi3SetInt32TYPE* fmi3SetInt32;
-//    fmi3GetInt32TYPE* fmi3GetInt32;
-//
-//    fmi3GetBooleanTYPE* fmi3GetBoolean;
-//    fmi3SetBooleanTYPE* fmi3SetBoolean;
 };
 
 
@@ -84,28 +64,13 @@ public:
     int FMU_QuickSetup();
     int FMU_Close();
 private:
-      grpc::ServerUnaryReactor* FMU_Start(grpc::CallbackServerContext* context,
-                                          const villas::node::Message* request,
-                                          villas::node::Message* reply
-                                       ); 
-//    grpc::ServerUnaryReactor* FMU_DoStep(grpc::CallbackServerContext* context,
-//                                         const villas::node::Message*  request,
-//                                         villas::node::Message* reply) override;
-//    grpc::ServerUnaryReactor* FMU_GetData(grpc::CallbackServerContext* context,
-//                                          const villas::node::Message*  request,
-//                                          villas::node::Message* reply) override;
-//    grpc::ServerUnaryReactor* FMU_SetData(grpc::CallbackServerContext* context,
-//                                          const villas::node::Message*  request,
-//                                          villas::node::Message* reply) override;
-//    grpc::ServerUnaryReactor* FMU_GetV(grpc::CallbackServerContext* context,
-//                                       const villas::node::Message*  request,
-//                                       villas::node::Message* reply) override;
-//    grpc::ServerUnaryReactor* data_echo(grpc::CallbackServerContext* context,
-//                                       const villas::node::Message*  request,
-//                                       villas::node::Message* reply) override;
-//    grpc::ServerUnaryReactor* FMU_GetDataRef(grpc::CallbackServerContext* context,
-//                                             const FMU_server::Reference*  request,
-//                                             villas::node::Message* reply) override;
+
+    grpc::ServerUnaryReactor* FMU_DoStep(grpc::CallbackServerContext* context,
+                                         const villas::node::Message*  request,
+                                         villas::node::Message* reply) override;
+    grpc::ServerUnaryReactor* FMU_GetData(grpc::CallbackServerContext* context,
+                                          const villas::node::Message*  request,
+                                          villas::node::Message* reply) override;
     void* handle;
     fmi3Instance fmu;
     fmi3InstantiateCoSimulationTYPE* fmi3InstantiateCoSimulation;
@@ -127,15 +92,5 @@ private:
 
     fmi3GetFloat64TYPE* fmi3GetFloat64;
     std::string guid = "{5d2d8180-f7fc-4933-b4ec-7079ef246625}";
-//    fmi3SetFloat64TYPE* fmi3SetFloat64;
-
-//    fmi3GetFloat32TYPE* fmi3GetFloat32;
-//    fmi3SetFloat32TYPE* fmi3SetFloat32;
-//
-//    fmi3SetInt32TYPE* fmi3SetInt32;
-//    fmi3GetInt32TYPE* fmi3GetInt32;
-//
-//    fmi3GetBooleanTYPE* fmi3GetBoolean;
-//    fmi3SetBooleanTYPE* fmi3SetBoolean;
 };
 

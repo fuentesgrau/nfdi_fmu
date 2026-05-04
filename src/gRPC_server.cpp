@@ -61,7 +61,6 @@ int FMU_serviceImp::FMU_Load(std::string name, std::string path) {
         return -1;
     }
 
-  // Check which types we need and delete the rest (maybe?) Bouncing Ball only has 2 64 floats
 
     fmi3GetFloat64 = (fmi3GetFloat64TYPE*)dlsym(handle, "fmi3GetFloat64");
 
@@ -112,93 +111,34 @@ int FMU_serviceImp::FMU_QuickSetup() {
     return 0;
 }
 
-grpc::Status FMU_serviceImp::FMU_Start(grpc::ServerContext* context,
-                                       const villas::node::Message* request,
-                                       villas::node::Message* reply
-//                                       const FMU_server::msg* request,
-//                                       grpc::ServerWriter<FMU_server::Data>* writer
-                                                                              ) {
-    std::cout << "Starting FMU ... " << std::endl;
-    while (currenttime < stoptime) {
+grpc::Status FMU_serviceImp::FMU_DoStep(grpc::ServerContext* context,
+                                        const villas::node::Message* request,
+                                        villas::node::Message* reply) {
+    if (stoptimedefined && currenttime + stepsize > stoptime) {
+        // reply->set_s("Stop time reach");
+    } else {
         fmi3DoStep(fmu, currenttime, stepsize, fmi3True, &eventHandlingNeeded, &terminateSimulation, &earlyReturn, &lastSuccessfulTime);
-        // Get data in this case h, v;
-        double data;
-        fmi3ValueReference r[1] = {1};
-        fmi3GetFloat64(fmu,r, 1, &data, 1);
-        std::cout << "time: " << currenttime << ", data: " << data << std::endl;
-
-        villas::node::Sample* d_s = reply->add_samples();
-        d_s->set_type(villas::node::Sample::Type::Sample_Type_DATA);
-
-        villas::node::Value* reply1 = d_s->add_values();
-        reply1->set_f(data);
-        r[0] = 3;
-        fmi3GetFloat64(fmu,r, 1, &data, 1);
-        villas::node::Value* reply2 = d_s->add_values();
-        reply2->set_f(data);
-        currenttime += stepsize;
-
-        // Perform step every 500 ms
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        // reply->set_s("Perform a step");
     }
     return grpc::Status::OK;
-}
+};
 
-//grpc::Status FMU_serviceImp::FMU_DoStep(grpc::ServerContext* context,
-//                                        const villas::node::Message* request,
-//                                        villas::node::Message* reply) {
-//    if (stoptimedefined && currenttime + stepsize > stoptime) {
-//        // reply->set_s("Stop time reach");
-//    } else {
-//        fmi3DoStep(fmu, currenttime, stepsize, fmi3True, &eventHandlingNeeded, &terminateSimulation, &earlyReturn, &lastSuccessfulTime);
-//        // reply->set_s("Perform a step");
-//    }
-//    return grpc::Status::OK;
-//};
+grpc::Status FMU_serviceImp::FMU_GetData(grpc::ServerContext* context,
+                                         const villas::node::Message* request,
+                                         villas::node::Message* reply) {
+    std::cout << "FMU_GetData" << std::endl;
+    villas::node::Sample* d_s = reply->add_samples();
+    d_s->set_type(villas::node::Sample::Type::Sample_Type_DATA);
+    villas::node::Value* d_v = d_s->add_values();
+    fmi3ValueReference r[2] = {268435455,603979776};
+    fmi3Float64 d[2];
+    fmi3GetFloat64(fmu, r, 2, d, 2);
+    std::cout << "server: FMU time: " << d[0] << ", data: " << d[1] << std::endl;
+    d_v->set_f(d[1]);
+    std::cout << "Get data done" << std::endl;
+    return grpc::Status::OK;
+};
 
-//grpc::Status FMU_serviceImp::FMU_GetData(grpc::ServerContext* context,
-//                                         const villas::node::Message* request,
-//                                         villas::node::Message* reply) {
-//    std::cout << "FMU_GetData" << std::endl;
-//    // villas::node::Sample s = request->samples(0);
-//    villas::node::Sample* d_s = reply->add_samples();
-//    // auto* ts = new villas::node::Timestamp;
-//    // ts->set_nsec(s.ts_origin().nsec());
-//    // ts->set_sec(s.ts_origin().sec());
-//    // std::cout << ts.sec() << "." << ts.nsec() << std::endl;
-//    // d_s->set_allocated_ts_origin(ts);
-//    // d_s->release_ts_origin();
-//    d_s->set_type(villas::node::Sample::Type::Sample_Type_DATA);
-//    for (unsigned int i = 48; i <= 53; i++) {
-//        villas::node::Value* d_v = d_s->add_values();
-//        fmi3ValueReference r[1] = {i};
-//        fmi3Float64 d;
-//        fmi3GetFloat64(fmu, r, 1, &d, 1);
-//        // std::cout << "d: " << d << std::endl;
-//        d_v->set_f(d);
-//    }
-//    // std::cout << "Get data done" << std::endl;
-//    // std::cout << d_s->ts_origin().sec() << "." << d_s->ts_origin().nsec() << std::endl;
-//    return grpc::Status::OK;
-//};
-
-//grpc::Status FMU_serviceImp::FMU_SetData(grpc::ServerContext* context,
-//                                         const villas::node::Message* request,
-//                                         villas::node::Message* reply) {
-//    // std::cout << "fmu set data" << std::endl;
-//    villas::node::Sample data = request->samples(0);
-//    // villas::node::Sample idx = request->samples(1);
-//    for (int i = 0; i < data.values_size(); i++) {
-//        fmi3Float64 d;
-//        villas::node::Value d_v = data.values(i);
-//        // villas::node::Value i_v = idx.values(i);
-//        fmi3ValueReference r[1] = {(unsigned int)i};
-//        double f = d_v.f();
-//        fmi3SetFloat64(fmu, r, 1, &f, 1);
-//    }
-//    // std::cout << "fmu set data done" << std::endl;
-//    return grpc::Status::OK;
-//}
 
 FMU_serviceImp service;
 

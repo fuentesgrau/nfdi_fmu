@@ -5,7 +5,8 @@ import "villas.proto";
 package FMU_server;
 
 service FMI_service {
-    rpc FMU_Start (villas.node.Message) returns (villas.node.Message) {};
+    rpc FMU_DoStep (villas.node.Message) returns (villas.node.Message) {};
+    rpc FMU_GetData (villas.node.Message) returns (villas.node.Message) {};
 }
 
 message Reference {
