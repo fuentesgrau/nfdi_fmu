@@ -136,7 +136,7 @@ void my_handler(int s){
 
 void RunServer() {
     // FMU_serviceImp service;
-    std::string server_address("0.0.0.0:50051");
+    std::string server_address("*:50051");
     grpc::ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);

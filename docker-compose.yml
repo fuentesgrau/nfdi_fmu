@@ -2,12 +2,10 @@ services:
   fmu:
     build:
       context: .
-    ports:
-      - "50051:50051"
   villas-node:
-    image: fmu_villas
-#    build:
-#      dockerfile: node/packaging/docker/Dockerfile.debian
+    build:
+      context: node/
+      dockerfile: ./packaging/docker/Dockerfile.debian
     volumes:
       - ./gateway.conf:/config.conf
       - ./results:/results
