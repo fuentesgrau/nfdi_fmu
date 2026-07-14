@@ -51,7 +51,7 @@ int FMU_callbackserviceImp::FMU_Close() {
 int FMU_callbackserviceImp::FMU_QuickSetup() {
     fmu = fmi3InstantiateCoSimulation(  "instance1", 
                                         guid.c_str(), 
-                                        NULL, 
+                                        "/app/FMU/resources", 
                                         fmi3False, 
                                         fmi3True, 
                                         fmi3False, 
@@ -66,14 +66,16 @@ int FMU_callbackserviceImp::FMU_QuickSetup() {
         FMU_Close();
         return 1;
     }
-    fmi3EnterInitializationMode(fmu, false, 0.0, 0.0, true, 10.0);
+    fmi3EnterInitializationMode(fmu, fmi3False, 0.0, 0.0, fmi3True, 604800);
     stoptimedefined = true;
-    stoptime = 100.0;
-    stepsize = 1;
+    stoptime = 604800;
+    stepsize = 100;
     currenttime = 0;
-    fmi3ExitInitializationMode(fmu);
+    state = fmi3ExitInitializationMode(fmu);
+    if(state != fmi3OK) std::cout << "Couldn't exit init mode with error: " << state << std::endl;
     return 0;
 }
+
 
 grpc::ServerUnaryReactor* FMU_callbackserviceImp::FMU_DoStep(grpc::CallbackServerContext* context,
                                                              const villas::node::Message*  request,
@@ -81,9 +83,23 @@ grpc::ServerUnaryReactor* FMU_callbackserviceImp::FMU_DoStep(grpc::CallbackServe
     if (stoptimedefined && currenttime + stepsize > stoptime) {
         // reply->set_s("Stop time reach");
     } else {
+        villas::node::Sample* d_s = reply->add_samples();
+        d_s->set_type(villas::node::Sample::Type::Sample_Type_DATA);
+        villas::node::Value* d_v = d_s->add_values();
+        fmi3ValueReference r[1] = {603979776};
+//        fmi3ValueReference time_vr = 268435455;
+        fmi3Float64 d[1];
+//        fmi3Float64 time;
+
         fmi3DoStep(fmu, currenttime, stepsize, fmi3True, &eventHandlingNeeded, &terminateSimulation, &earlyReturn, &lastSuccessfulTime);
         currenttime = currenttime + stepsize;
+        fmi3GetFloat64(fmu, r, 1, d, 1);
+
+        if((eventHandlingNeeded || terminateSimulation || earlyReturn)  == fmi3True) std::cout << "Error in DoStep" << std::endl;
         // reply->set_s("Perform a step");
+      
+    d_v->set_f(d[0]);
+
     }
     auto* reactor = context->DefaultReactor();
     reactor->Finish(grpc::Status::OK);
@@ -96,12 +112,14 @@ grpc::ServerUnaryReactor* FMU_callbackserviceImp::FMU_GetData(grpc::CallbackServ
     std::cout << "Hello from GetData... " << std::endl;
     villas::node::Sample* d_s = reply->add_samples();
     d_s->set_type(villas::node::Sample::Type::Sample_Type_DATA);
-        villas::node::Value* d_v = d_s->add_values();
-        fmi3ValueReference r[2] = {268435455,603979776};
-        fmi3Float64 d[2];
-        fmi3GetFloat64(fmu, r, 2, d, 2);
-        std::cout << "callbackserver: FMU time: " << d[0] << ", data: " << d[1] << std::endl;
-        d_v->set_f(d[1]);
+    villas::node::Value* d_v = d_s->add_values();
+    fmi3ValueReference vr = 603979776;
+    fmi3Float64 d;
+    fmi3GetFloat64(fmu, &vr, 1, &d, 1);
+      
+    std::cout << "callbackserver: data: " << d << std::endl;
+    d_v->set_f(d);
+
     auto* reactor = context->DefaultReactor();
     reactor->Finish(grpc::Status::OK);
     return reactor;

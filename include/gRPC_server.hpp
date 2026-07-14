@@ -50,6 +50,7 @@ grpc::Status FMU_GetData(grpc::ServerContext* context,
     fmi3Boolean terminateSimulation;
     fmi3Boolean earlyReturn;
     fmi3Float64 lastSuccessfulTime;
+    fmi3Status state;
 
     fmi3GetFloat64TYPE* fmi3GetFloat64;
 
@@ -89,6 +90,7 @@ private:
     fmi3Boolean terminateSimulation;
     fmi3Boolean earlyReturn;
     fmi3Float64 lastSuccessfulTime;
+    fmi3Status state;
 
     fmi3GetFloat64TYPE* fmi3GetFloat64;
     std::string guid = "{5d2d8180-f7fc-4933-b4ec-7079ef246625}";
